@@ -1,0 +1,47 @@
+name: Resize Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_deployment:
+        description: 'Source deployment name'
+        required: true
+      source_target_size:
+        description: 'Target size for the source deployment'
+        required: true
+      destination_deployment:
+        description: 'Destination deployment name'
+        required: true
+      destination_target_size:
+        description: 'Target size for the destination deployment'
+        required: true
+
+jobs:
+  resize_job:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Call Resize API
+      id: resize_deployment
+      run: |
+        response=$(curl -X POST https://api.example.com/DeploymentResize \
+          -H "Content-Type: application/json" \
+          -d '{
+            "SourceDeployment": "${{ github.event.inputs.source_deployment }}",
+            "SourceTargetSize": ${{ github.event.inputs.source_target_size }},
+            "DestinationDeployment": "${{ github.event.inputs.destination_deployment }}",
+            "DestinationTargetSize": ${{ github.event.inputs.destination_target_size }}
+          }')
+
+        echo "$response"
+        
+        task_id=$(echo "$response" | jq -r '.taskId')
+        status_url=$(echo "$response" | jq -r '.statusUrl')
+        
+        echo "::set-output name=task_id::$task_id"
+        echo "::set-output name=status_url::$status_url"
+
+    - name: Display Task Info
+      run: |
+        echo "Resize task ID: ${{ steps.resize_deployment.outputs.task_id }}"
+        echo "Status URL: ${{ steps.resize_deployment.outputs.status_url }}"
